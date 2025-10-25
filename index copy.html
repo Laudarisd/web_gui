@@ -5,6 +5,58 @@
 <meta charset="UTF-8">
 <title>AI-CE Floorplan Visualizer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+/* ------------------------------------------------------------------
+   Enhance drag + arrow movement without altering existing behavior.
+   Keeps image panning smooth even when mouse leaves viewer bounds.
+-------------------------------------------------------------------*/
+(function () {
+  const viewer = document.getElementById("viewer");
+  if (!viewer) return;
+
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let scrollLeft = 0, scrollTop = 0;
+
+  // start drag
+  viewer.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;      // left click only
+    e.preventDefault();
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    scrollLeft = viewer.scrollLeft;
+    scrollTop = viewer.scrollTop;
+    viewer.style.cursor = "grabbing";
+    viewer.style.userSelect = "none";
+  });
+
+  // drag move (global)
+  document.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    viewer.scrollLeft = scrollLeft - (e.clientX - startX);
+    viewer.scrollTop  = scrollTop  - (e.clientY - startY);
+  });
+
+  // end drag (global)
+  document.addEventListener("mouseup", () => {
+    isDragging = false;
+    viewer.style.cursor = "grab";
+    viewer.style.removeProperty("user-select");
+  });
+
+  // keyboard panning for fine control
+  document.addEventListener("keydown", (e) => {
+    const step = 50;
+    switch (e.key) {
+      case "ArrowLeft":  viewer.scrollLeft -= step; break;
+      case "ArrowRight": viewer.scrollLeft += step; break;
+      case "ArrowUp":    viewer.scrollTop  -= step; break;
+      case "ArrowDown":  viewer.scrollTop  += step; break;
+    }
+  });
+})();
+</script>
 
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -361,14 +413,7 @@
   #viewer {
     cursor: grab;
   }
-
-  /* --- Viewer scroll/drag enhancement --- */
-  #viewer::-webkit-scrollbar { display: none; }
-  #zoomContainer {
-    position: relative !important;
-    display: inline-block;
-    transform-origin: top left;
-  }
+  
 
   @media (max-width: 1024px) {
     .three-columns {
@@ -522,51 +567,5 @@
 <script src="./app/src/zip.js"></script>
 <script src="./app/src/data.js"></script>
 <script src="./app/src/viz.js"></script>
-
-<!-- ✅ Drag + arrow enhancement -->
-<script>
-(function () {
-  const viewer = document.getElementById("viewer");
-  if (!viewer) return;
-
-  let isDragging = false;
-  let startX = 0, startY = 0;
-  let scrollLeft = 0, scrollTop = 0;
-
-  viewer.addEventListener("mousedown", (e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    isDragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    scrollLeft = viewer.scrollLeft;
-    scrollTop = viewer.scrollTop;
-    viewer.style.cursor = "grabbing";
-    viewer.style.userSelect = "none";
-  });
-
-  document.addEventListener("mousemove", (e) => {
-    if (!isDragging) return;
-    viewer.scrollLeft = scrollLeft - (e.clientX - startX);
-    viewer.scrollTop  = scrollTop  - (e.clientY - startY);
-  });
-
-  document.addEventListener("mouseup", () => {
-    isDragging = false;
-    viewer.style.cursor = "grab";
-    viewer.style.removeProperty("user-select");
-  });
-
-  document.addEventListener("keydown", (e) => {
-    const step = 50;
-    switch (e.key) {
-      case "ArrowLeft":  viewer.scrollLeft -= step; break;
-      case "ArrowRight": viewer.scrollLeft += step; break;
-      case "ArrowUp":    viewer.scrollTop  -= step; break;
-      case "ArrowDown":  viewer.scrollTop  += step; break;
-    }
-  });
-})();
-</script>
 </body>
 </html>

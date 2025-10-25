@@ -1,70 +1,48 @@
-// ============================================================================
 // viz.js
-// Visualization module for JSON floorplan annotation data over images
-// Handles zooming, dragging, drawing bounding boxes, polygons, and labels.
-// ============================================================================
+let zoom = 1;
+let isDragging = false;
+let startX = 0;
+let startY = 0;
+let initialScrollLeft = 0;
+let initialScrollTop = 0;
+let originalWidth = 0;
+let originalHeight = 0;
+let classMap = {};
+let currentObjs = [];
 
-// -----------------------------
-// Global variables
-// -----------------------------
-let zoom = 1;                        // Current zoom level for the viewer
-let isDragging = false;              // Drag state flag
-let startX = 0;                      // Mouse start X position for drag
-let startY = 0;                      // Mouse start Y position for drag
-let initialScrollLeft = 0;           // Scroll offset before drag (X)
-let initialScrollTop = 0;            // Scroll offset before drag (Y)
-let originalWidth = 0;               // Image natural width
-let originalHeight = 0;              // Image natural height
-let classMap = {};                   // Map of class name → list of objects
-let currentObjs = [];                // Currently visualized objects
+const viewer = document.getElementById("viewer");
+const zoomContainer = document.getElementById("zoomContainer");
+const img = document.getElementById("mainImage");
+const canvas = document.getElementById("mainCanvas");
 
-// -----------------------------
-// Core DOM elements
-// -----------------------------
-const viewer = document.getElementById("viewer");          // Scrollable image viewer
-const zoomContainer = document.getElementById("zoomContainer"); // Container for image & overlay
-const img = document.getElementById("mainImage");          // Base floorplan image
-const canvas = document.getElementById("mainCanvas");      // Annotation drawing layer
-
-// Set viewer scroll and positioning
 viewer.style.overflow = 'scroll';
 zoomContainer.style.position = '';
 
-// -----------------------------
-// Viewer interaction listeners
-// -----------------------------
-viewer.addEventListener("wheel", handleZoom);              // Zoom in/out with scroll wheel
-viewer.addEventListener("mousedown", startDrag);           // Begin drag
-viewer.addEventListener("mousemove", drag);                // Move image while dragging
-viewer.addEventListener("mouseup", endDrag);               // End drag
-viewer.addEventListener("mouseleave", endDrag);            // Stop drag when mouse leaves
+viewer.addEventListener("wheel", handleZoom);
+viewer.addEventListener("mousedown", startDrag);
+viewer.addEventListener("mousemove", drag);
+viewer.addEventListener("mouseup", endDrag);
+viewer.addEventListener("mouseleave", endDrag);
 
-// -----------------------------
-// UI toggles for annotation visibility
-// -----------------------------
-let showAnnotationText = true;                             // Toggle to show/hide labels
+let showAnnotationText = true;
 const toggleTextBtn = document.getElementById("toggleTextBtn");
 if (toggleTextBtn) {
   toggleTextBtn.addEventListener("click", () => {
     showAnnotationText = !showAnnotationText;
     toggleTextBtn.textContent = showAnnotationText ? "Hide Annotation Text" : "Show Annotation Text";
-    updateView();                                          // Redraw when toggled
+    updateView();
   });
 }
 
-let showKeyPoints = true;                                  // Toggle for showing corner keypoints
+let showKeyPoints = true;
 const toggleKeyPointsBtn = document.getElementById("toggleKeyPointsBtn");
 if (toggleKeyPointsBtn) {
   toggleKeyPointsBtn.addEventListener("click", () => {
     showKeyPoints = !showKeyPoints;
     toggleKeyPointsBtn.textContent = showKeyPoints ? "Hide Key Points" : "Show Key Points";
-    updateView();                                          // Redraw when toggled
+    updateView();
   });
 }
-
-// ============================================================================
-// INTERACTION FUNCTIONS: ZOOM & DRAG
-// ============================================================================
 
 function handleZoom(e) {
   e.preventDefault();
@@ -73,17 +51,16 @@ function handleZoom(e) {
   const mouseY = e.clientY - rect.top;
   const oldZoom = zoom;
 
-  // Prevent zooming out smaller than the viewer area
+  // Prevent zoom out smaller than viewer
   const minZoom = Math.min(
     viewer.clientWidth / originalWidth,
     viewer.clientHeight / originalHeight
   );
   zoom *= (1 - Math.sign(e.deltaY) * 0.1);
-  zoom = Math.max(minZoom, Math.min(zoom, 5));             // Clamp zoom range
+  zoom = Math.max(minZoom, Math.min(zoom, 5));
 
   if (zoom === oldZoom) return;
 
-  // Adjust scroll position to keep mouse position stable during zoom
   const offsetX = mouseX + viewer.scrollLeft;
   const offsetY = mouseY + viewer.scrollTop;
   const fractionX = offsetX / (originalWidth * oldZoom);
@@ -96,7 +73,7 @@ function handleZoom(e) {
 }
 
 function startDrag(e) {
-  if (e.button !== 0) return;                              // Left mouse only
+  if (e.button !== 0) return;
   isDragging = true;
   startX = e.clientX;
   startY = e.clientY;
@@ -110,7 +87,6 @@ function drag(e) {
     endDrag();
     return;
   }
-  // Move scroll position based on mouse delta
   viewer.scrollLeft = initialScrollLeft - (e.clientX - startX);
   viewer.scrollTop = initialScrollTop - (e.clientY - startY);
 }
@@ -120,10 +96,6 @@ function endDrag() {
   viewer.style.cursor = "grab";
 }
 
-// ============================================================================
-// CLASS DETERMINATION HELPER
-// Determines the category of each object for color grouping
-// ============================================================================
 function getClass(o) {
   if (o.class_name) return o.class_name;
   if (o.symbol_polygon) return 'Symbol';
@@ -133,8 +105,7 @@ function getClass(o) {
 }
 
 // ============================================================================
-// MAIN VISUALIZATION FUNCTION
-// Handles JSON scaling, color assignment, and viewer update
+// VISUALIZATION
 // ============================================================================
 function visualizeOnMain() {
   const isCropJson = currentFileName.toLowerCase().includes('crop');
@@ -145,7 +116,7 @@ function visualizeOnMain() {
   console.log(`🔍 Is Crop JSON: ${isCropJson}`);
   console.log(`📦 Objects: ${objs.length}`);
   
-  // Step 1: Convert coordinates from crop JSON to original image space
+  // Step 1: Convert non-crop JSON coordinates to original image scale
   if (!isCropJson && scaleInfo.extracted) {
     console.log(`🔧 Converting coordinates from crop to original scale`);
     console.log(`   Crop: ${scaleInfo.cropWidth}×${scaleInfo.cropHeight}`);
@@ -157,7 +128,6 @@ function visualizeOnMain() {
     const offsetX = scaleInfo.cropXMin || 0;
     const offsetY = scaleInfo.cropYMin || 0;
     
-    // Convert each object geometry
     objs = objs.map(o => {
       const converted = { ...o };
       
@@ -170,7 +140,6 @@ function visualizeOnMain() {
         };
       }
       
-      // Scale all polygon-based coordinates
       if (o.polygon) {
         converted.polygon = {};
         Object.keys(o.polygon).forEach(key => {
@@ -219,7 +188,7 @@ function visualizeOnMain() {
     console.log(`✅ Crop JSON - using as-is`);
   }
 
-  // Step 2: Assign a unique color per detected class
+  // Assign a unique color per class
   classMap = {};
   const classColors = {};
   objs.forEach((o) => {
@@ -233,7 +202,6 @@ function visualizeOnMain() {
     classMap[cls].push(o);
   });
 
-  // Step 3: Build checkboxes for toggling annotation layers
   const controls = document.getElementById("annotationControls");
   controls.innerHTML = "";
   Object.keys(classMap).sort().forEach(cls => {
@@ -248,34 +216,30 @@ function visualizeOnMain() {
     controls.appendChild(label);
   });
   
-  // Step 4: Load the original image and auto-fit to viewer
+  // Step 2: Display original image
   img.src = uploadedImgDataUrl;
   img.onload = () => {
-    originalWidth = img.naturalWidth;
-    originalHeight = img.naturalHeight;
+  originalWidth = img.naturalWidth;
+  originalHeight = img.naturalHeight;
 
-    // Fit image proportionally inside viewer window
-    const minZoom = Math.min(
-      viewer.clientWidth / originalWidth,
-      viewer.clientHeight / originalHeight
-    );
-    zoom = minZoom;
+  // Fit image to viewer
+  const minZoom = Math.min(
+    viewer.clientWidth / originalWidth,
+    viewer.clientHeight / originalHeight
+  );
+  zoom = minZoom;
 
-    updateView();
+  updateView();
 
-    // Center the image in the viewer
-    viewer.scrollLeft = Math.max(0, (originalWidth * zoom - viewer.clientWidth) / 2);
-    viewer.scrollTop = Math.max(0, (originalHeight * zoom - viewer.clientHeight) / 2);
+  // Center image
+  viewer.scrollLeft = Math.max(0, (originalWidth * zoom - viewer.clientWidth) / 2);
+  viewer.scrollTop = Math.max(0, (originalHeight * zoom - viewer.clientHeight) / 2);
   };
 }
 
-// ============================================================================
-// VIEW UPDATING & DRAWING
-// ============================================================================
 function updateView() {
   if (!originalWidth) return;
 
-  // Adjust image and canvas size based on current zoom
   const displayWidth = originalWidth * zoom;
   const displayHeight = originalHeight * zoom;
 
@@ -287,17 +251,13 @@ function updateView() {
   canvas.style.width = `${displayWidth}px`;
   canvas.style.height = `${displayHeight}px`;
 
-  drawAnnotations(); // Redraw annotations after resizing
+  drawAnnotations();
 }
 
-// ============================================================================
-// DRAWING ANNOTATIONS
-// ============================================================================
 function drawAnnotations() {
   const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);         // Clear previous drawings
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Base drawing style constants
   const FONT_SIZE = 20 * zoom;
   const BORDER_WIDTH = 3 * zoom;
   const LABEL_PADDING = 8 * zoom;
@@ -306,22 +266,20 @@ function drawAnnotations() {
   const OCR_FONT_SIZE = 16 * zoom;
   const OCR_LINE_WIDTH = 2 * zoom;
 
-  // Iterate over each class layer
   Object.keys(classMap).forEach(cls => {
     const toggleId = `class-toggle-${cls.replace(/\s/g, "-")}`;
     const toggle = document.getElementById(toggleId);
     if (!toggle || !toggle.checked) return;
 
-    // Draw each object of this class
     classMap[cls].forEach((o, idx) => {
       const scaledO = scaleObject(o, zoom);
       const color = o._color;
       const rgbaColor = hslToRgba(color, FILL_OPACITY);
+      // Annotation tetx: Only class namse, size, detail
       let label = `${cls}`;
       if (o.size) label += `: ${o.size}`;
       if (o.detail) label += `: ${o.detail}`;
 
-      // Bounding boxes
       if (scaledO.bbox) {
         const x1 = scaledO.bbox.xmin;
         const y1 = scaledO.bbox.ymin;
@@ -333,8 +291,6 @@ function drawAnnotations() {
         ctx.strokeStyle = color;
         ctx.lineWidth = BORDER_WIDTH;
         ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-
-        // Draw text label
         if (showAnnotationText) {
           ctx.font = `bold ${FONT_SIZE}px Arial`;
           const textWidth = ctx.measureText(label).width;
@@ -344,8 +300,6 @@ function drawAnnotations() {
           ctx.textBaseline = "middle";
           ctx.fillText(label, x1 + LABEL_PADDING, y1 - LABEL_HEIGHT / 2 - (3 * zoom));
         }
-
-        // Draw red corner keypoints
         if (showKeyPoints) {
           const corners = [[x1, y1], [x2, y1], [x1, y2], [x2, y2]];
           corners.forEach(c => {
@@ -355,13 +309,9 @@ function drawAnnotations() {
             ctx.fill();
           });
         }
-
-      // Polygon walls
       } else if (scaledO.polygon) {
         const pts = Object.values(scaledO.polygon);
         drawPolygon(ctx, pts, color, rgbaColor, label, FONT_SIZE, BORDER_WIDTH, LABEL_PADDING, LABEL_HEIGHT);
-
-      // Symbol polygons (doors/windows/icons)
       } else if (scaledO.symbol_polygon) {
         if (scaledO.bbox) {
           const x1 = scaledO.bbox.xmin;
@@ -376,6 +326,7 @@ function drawAnnotations() {
           ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
 
           if (showAnnotationText) {
+            // Add label for symbol
             ctx.font = `bold ${FONT_SIZE}px Arial`;
             const symbolLabel = `${cls}`;
             const textWidth = ctx.measureText(symbolLabel).width;
@@ -385,8 +336,6 @@ function drawAnnotations() {
             ctx.textBaseline = "middle";
             ctx.fillText(symbolLabel, x1 + LABEL_PADDING, y1 - LABEL_HEIGHT / 2 - (3 * zoom));
           }
-
-          // Draw symbol corners
           if (showKeyPoints) {
             const corners = [[x1, y1], [x2, y1], [x1, y2], [x2, y2]];
             corners.forEach(c => {
@@ -398,14 +347,17 @@ function drawAnnotations() {
           }
         }
 
-        // Size and detail polygons for OCR or text regions
         if (scaledO.size_polygon) {
           const sizePts = Object.values(scaledO.size_polygon);
+          // drawOCRPolygon(ctx, sizePts, "#00BFFF", `#${idx + 1}: ${scaledO.size || ""}`, OCR_FONT_SIZE, OCR_LINE_WIDTH);
           drawOCRPolygon(ctx, sizePts, "#00BFFF", o.size || "", OCR_FONT_SIZE, OCR_LINE_WIDTH);
+
         }
         if (scaledO.detail_polygon) {
           const detailPts = Object.values(scaledO.detail_polygon);
+          // drawOCRPolygon(ctx, detailPts, "#FF4500", `#${idx + 1}: ${scaledO.detail || ""}`, OCR_FONT_SIZE, OCR_LINE_WIDTH);
           drawOCRPolygon(ctx, detailPts, "#FF4500", o.detail || "", OCR_FONT_SIZE, OCR_LINE_WIDTH);
+
         }
       }
     });
@@ -414,9 +366,6 @@ function drawAnnotations() {
   console.log(`✅ Drew objects at zoom ${zoom.toFixed(2)}\n`);
 }
 
-// ============================================================================
-// HELPER DRAWING FUNCTIONS
-// ============================================================================
 function scaleObject(o, z) {
   const s = { ...o };
   if (s.bbox) {
@@ -438,11 +387,10 @@ function scaleObject(o, z) {
   return s;
 }
 
-// Draw filled polygon and its label/keypoints
 function drawPolygon(ctx, pts, color, rgbaColor, label, fontSize, borderWidth, labelPadding, labelHeight) {
   if (pts.length === 0) return;
   
-  // Fill polygon
+  // Fill
   ctx.fillStyle = rgbaColor;
   ctx.beginPath();
   ctx.moveTo(pts[0][0], pts[0][1]);
@@ -450,7 +398,7 @@ function drawPolygon(ctx, pts, color, rgbaColor, label, fontSize, borderWidth, l
   ctx.closePath();
   ctx.fill();
   
-  // Stroke border
+  // Border
   ctx.strokeStyle = color;
   ctx.lineWidth = borderWidth;
   ctx.beginPath();
@@ -459,8 +407,8 @@ function drawPolygon(ctx, pts, color, rgbaColor, label, fontSize, borderWidth, l
   ctx.closePath();
   ctx.stroke();
   
-  // Draw text label
   if (showAnnotationText) {
+    // Label
     ctx.font = `bold ${fontSize}px Arial`;
     const textWidth = ctx.measureText(label).width;
     ctx.fillStyle = color;
@@ -469,8 +417,6 @@ function drawPolygon(ctx, pts, color, rgbaColor, label, fontSize, borderWidth, l
     ctx.textBaseline = "middle";
     ctx.fillText(label, pts[0][0] + labelPadding, pts[0][1] - labelHeight/2 - (3 * zoom));
   }
-
-  // Red dots at keypoints
   if (showKeyPoints) {
     pts.forEach(p => {
       ctx.beginPath();
@@ -481,11 +427,10 @@ function drawPolygon(ctx, pts, color, rgbaColor, label, fontSize, borderWidth, l
   }
 }
 
-// Draw semi-transparent OCR text regions
 function drawOCRPolygon(ctx, pts, color, text, fontSize, lineWidth) {
   if (pts.length === 0) return;
   
-  // Fill with translucent color
+  // Semi-transparent fill
   ctx.fillStyle = color + "40";
   ctx.beginPath();
   ctx.moveTo(pts[0][0], pts[0][1]);
@@ -493,12 +438,12 @@ function drawOCRPolygon(ctx, pts, color, text, fontSize, lineWidth) {
   ctx.closePath();
   ctx.fill();
   
-  // Draw polygon border
+  // Border
   ctx.strokeStyle = color;
   ctx.lineWidth = lineWidth;
   ctx.stroke();
   
-  // Centered text inside region
+  // Text centered
   if (showAnnotationText && text) {
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.fillStyle = color;
@@ -508,14 +453,14 @@ function drawOCRPolygon(ctx, pts, color, text, fontSize, lineWidth) {
     const centerX = pts.reduce((sum, p) => sum + p[0], 0) / pts.length;
     const centerY = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
     
+    // White outline
     ctx.strokeStyle = "white";
     ctx.lineWidth = 3 * zoom;
     ctx.strokeText(text, centerX, centerY);
     ctx.fillText(text, centerX, centerY);
+    
     ctx.textAlign = "start";
   }
-
-  // Draw corner dots
   if (showKeyPoints) {
     pts.forEach(p => {
       ctx.beginPath();
@@ -526,9 +471,6 @@ function drawOCRPolygon(ctx, pts, color, text, fontSize, lineWidth) {
   }
 }
 
-// ============================================================================
-// AUTO VISUALIZATION — populate previews from zip
-// ============================================================================
 async function autoVisualizeAll() {
   document.getElementById("visualizationSection").style.display = "block";
   
@@ -555,9 +497,6 @@ async function autoVisualizeAll() {
   }
 }
 
-// ============================================================================
-// COLOR UTILITIES — Generate class colors and convert to RGBA
-// ============================================================================
 function randomColor() {
   return `hsl(${Math.random()*360},70%,50%)`;
 }

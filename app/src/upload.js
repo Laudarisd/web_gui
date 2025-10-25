@@ -1,10 +1,21 @@
-// upload.js
-let uploadedImgDataUrl = null;
+// ============================================================
+// upload.js — Sends selected image directly to FastAPI server,
+// tracks progress, and auto-loads returned ZIP for inspection.
+// ============================================================
 
+let uploadedImgDataUrl = null;     // stores preview image as DataURL for quick display
+let currentZipBlob = null;         // global ZIP blob (shared with zip.js)
+let currentZip = null;             // JSZip object (used by zip.js later)
+
+// ------------------------------------------------------------
+// Handle image selection and preview
+// ------------------------------------------------------------
 document.getElementById("image").addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (file) {
     const reader = new FileReader();
+
+    // FileReader converts file → base64 preview
     reader.onload = (e) => {
       uploadedImgDataUrl = e.target.result;
       showImagePreview(e.target.result, file.name);
@@ -13,31 +24,39 @@ document.getElementById("image").addEventListener("change", (e) => {
   }
 });
 
+// Displays a small preview image and filename below input
 function showImagePreview(dataUrl, filename) {
   const preview = document.getElementById("imagePreview");
   preview.innerHTML = `
     <img src="${dataUrl}" style="max-width: 100%; max-height: 100px; border-radius: 6px; margin-top: 10px;">
+    <div style="font-size: 12px; color: #555;">${filename}</div>
   `;
 }
 
-function showStatus(message, type = 'info') {
+// ------------------------------------------------------------
+// Utility: show upload status messages (info/success/error)
+// ------------------------------------------------------------
+function showStatus(message, type = "info") {
   const status = document.getElementById("uploadStatus");
   status.innerHTML = `<div class="status-message ${type}">${message}</div>`;
 }
 
+// ------------------------------------------------------------
+// Utility: visual progress bar control
+// ------------------------------------------------------------
 function updateProgress(percent) {
   const progressBar = document.getElementById("progressBar");
   const progressFill = document.getElementById("progressFill");
   const submitBtn = document.getElementById("submitBtn");
-  
+
   if (percent > 0 && percent < 100) {
+    // While uploading — show progress
     progressBar.style.display = "block";
     progressFill.style.width = percent + "%";
     submitBtn.disabled = true;
     document.getElementById("submitText").textContent = `Processing... ${percent}%`;
-    showStatus(`📊 Upload Progress: ${percent}%`, "info");
   } else if (percent >= 100) {
-    progressBar.style.display = "block";
+    // Upload finished
     progressFill.style.width = "100%";
     showStatus("✅ Upload Complete!", "success");
     setTimeout(() => {
@@ -46,105 +65,130 @@ function updateProgress(percent) {
       document.getElementById("submitText").textContent = "🚀 Send to Server";
     }, 1000);
   } else {
+    // Reset state
     progressBar.style.display = "none";
     submitBtn.disabled = false;
     document.getElementById("submitText").textContent = "🚀 Send to Server";
   }
 }
 
+// ------------------------------------------------------------
+// Main: Handle form submission → send file to FastAPI
+// ------------------------------------------------------------
 document.getElementById("uploadForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
+  e.preventDefault(); // stop default form reload
 
-  updateProgress(10);
+  const fileInput = document.getElementById("image");
+  const file = fileInput.files[0];
+  if (!file) {
+    showStatus("⚠️ Please select an image first.", "error");
+    return;
+  }
 
+  // Collect metadata + server info from user input
+  const userId = document.getElementById("user_id").value || "web_user";
+  const projectNumber = document.getElementById("project_number").value || "PRJ-1";
+  const floorNumber = document.getElementById("floor_number").value || "floor_1";
+  const serverIp = document.getElementById("serverIp").value.trim();
+  const serverPort = document.getElementById("serverPort").value.trim();
+
+  // Validate IP/port presence
+  if (!serverIp || !serverPort) {
+    showStatus("⚠️ Please set server IP and port in settings.", "error");
+    return;
+  }
+
+  // Construct full FastAPI endpoint URL
+  const serverUrl = `http://${serverIp}:${serverPort}/receive_data`;
+  console.log(`📡 Sending to ${serverUrl}`);
+
+  // Prepare form data exactly as FastAPI expects
   const formData = new FormData();
-  formData.append("user_id", document.getElementById("user_id").value);
-  formData.append("project_number", document.getElementById("project_number").value);
-  formData.append("floor_number", document.getElementById("floor_number").value);
-  formData.append("date", new Date().toISOString().split('T')[0]);
-  formData.append("images", document.getElementById("image").files[0]);
+  formData.append("user_id", userId);
+  formData.append("project_number", projectNumber);
+  formData.append("floor_number", floorNumber);
+  formData.append("date", new Date().toISOString().split("T")[0]);
+  formData.append("images", file);
 
-  // Get remote IP and port from settings modal
-  formData.append("remote_ip", document.getElementById("serverIp").value);
-  formData.append("remote_port", document.getElementById("serverPort").value);
+  const xhr = new XMLHttpRequest();
+  updateProgress(10);
+  showStatus("📤 Uploading...", "info");
 
   try {
-    updateProgress(30);
-    showStatus(`📡 Sending data...`, "info");
-
-    const xhr = new XMLHttpRequest();
-
+    // Wrap XHR in a Promise to await completion
     const uploadPromise = new Promise((resolve, reject) => {
-      xhr.timeout = 120000;
+      xhr.timeout = 120000; // 2 min timeout
 
+      // Update progress bar during upload
       xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
-          const percentComplete = Math.round((e.loaded / e.total) * 50) + 30;
-          updateProgress(percentComplete);
+          const percent = Math.round((e.loaded / e.total) * 80);
+          updateProgress(percent);
         }
       });
 
+      // When request completes successfully
       xhr.addEventListener("load", () => {
-        if (xhr.status === 200) {
-          resolve(xhr);
-        } else {
-          reject(new Error(`Server error: ${xhr.status}`));
-        }
+        if (xhr.status === 200) resolve(xhr);
+        else reject(new Error(`Server error: ${xhr.status}`));
       });
 
-      xhr.addEventListener("error", () => {
-        reject(new Error("Network error"));
-      });
+      // Handle errors / timeouts
+      xhr.addEventListener("error", () => reject(new Error("Network error")));
+      xhr.addEventListener("timeout", () => reject(new Error("Request timed out")));
 
-      xhr.addEventListener("timeout", () => {
-        reject(new Error("Request timed out"));
-      });
-
-      // Always use proxy URL
-      xhr.open("POST", "http://localhost:5000/proxy/receive_data", true);
-      xhr.responseType = "blob";
+      // Open and send POST request to FastAPI endpoint
+      xhr.open("POST", serverUrl, true);
+      xhr.responseType = "blob";  // Expect a ZIP blob in response
       xhr.send(formData);
     });
-    
+
+    // Wait for upload to finish
     const xhr_result = await uploadPromise;
-    updateProgress(80);
-    
+    updateProgress(90);
+
+    // Extract response
     const blob = xhr_result.response;
     const contentType = xhr_result.getResponseHeader("Content-Type");
-    
-    updateProgress(90);
-    
+
+    // --------------------------------------------------------
+    // If FastAPI returned a ZIP, save it and auto-extract
+    // --------------------------------------------------------
     if (contentType && contentType.includes("application/zip")) {
-      const userId = document.getElementById("user_id").value || "result";
       const zipFileName = `${userId}.zip`;
-      
-      currentZipBlob = blob;
-      
-      showStatus(`✅ ZIP received (${(blob.size/1024).toFixed(1)} KB)`, "success");
-      
-      document.getElementById("zipInfo").innerHTML = `📦 ${zipFileName} (${(blob.size/1024).toFixed(1)} KB)`;
-      document.getElementById("zipInfo").style.display = "block";
-      document.getElementById("extractBtn").style.display = "block";
-      
+      currentZipBlob = blob; // store globally for zip.js to read
+
+      showStatus(`✅ ZIP received (${(blob.size / 1024).toFixed(1)} KB)`, "success");
+
+      // Automatically extract ZIP contents (uses zip.js)
+      if (typeof extractAndShowFiles === "function") {
+        await extractAndShowFiles();
+      }
+
+      // Still download the file locally for user
       downloadZipFile(blob, zipFileName);
-      
       updateProgress(100);
-      
     } else {
-      throw new Error("Unexpected response type");
+      // Unexpected response (e.g., JSON error message)
+      const text = await blob.text();
+      throw new Error(`Unexpected response: ${text}`);
     }
-  } catch (error) {
+
+  } catch (err) {
+    // Catch all network or server errors
+    showStatus(`❌ Error: ${err.message}`, "error");
     updateProgress(0);
-    showStatus(`❌ Error: ${error.message}`, "error");
   }
 });
 
+// ------------------------------------------------------------
+// Utility: trigger ZIP file download for user
+// ------------------------------------------------------------
 function downloadZipFile(blob, filename) {
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
-  a.style.display = "none";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

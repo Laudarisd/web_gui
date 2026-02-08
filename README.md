@@ -1,133 +1,258 @@
-# 7AI-CE Floorplan Visualizer
+# 🏗️ Floorplan Visualizer
 
-A web-based application for uploading floorplan images, receiving AI analysis results, and visualizing detected objects.
+![ComputerVision](https://img.shields.io/badge/ComputerVision-4CAF50?style=for-the-badge)
+![AI](https://img.shields.io/badge/AI-2196F3?style=for-the-badge)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Vanilla](https://img.shields.io/badge/Vanilla-8B4513?style=for-the-badge)
+![FloorPlanReconstruction](https://img.shields.io/badge/FloorPlan_Reconstruction-FF5722?style=for-the-badge)
 
-## 🚀 Quick Start (EASIEST METHOD)
-
-### Windows Users:
-
-**Just double-click:** `START.bat`
-
-That's it! Everything starts automatically.
-
-### All Platforms:
-
-```bash
-python start.py
-```
-
-The browser will open automatically at `http://localhost:5000`
+A modern web-based application for uploading floorplan images, receiving AI-powered analysis results, and visualizing detected architectural elements with interactive features.
 
 ---
 
-## 📖 Alternative Methods
-
-### Option 1: Manual Proxy Server
-
-1. **Install dependencies:**
-
-   ```bash
-   pip install flask flask-cors requests
-   ```
-2. **Start the proxy server:**
-
-   ```bash
-   python proxy_server.py
-   ```
-3. **Open in browser:**
-
-   ```
-   http://localhost:5000
-   ```
-
-### Option 2: Python Client (Command Line)
-
-```bash
-python test_client_image_mode.py
-```
-
-Files will be saved to `received_zip/` folder automatically.
-
-## 📁 Files
-
-- `index.html` - Web interface with visualization
-- `proxy_server.py` - Local CORS proxy server
-- `test_client_image_mode.py` - Python command-line client
-
-## 🎨 Features
+## 📸 Screenshots
 
 ### Web Interface
+![Web Interface](app/assets/1.png)
+*Glimpse of the web application interface*
 
-- ✅ Beautiful light olive theme
-- ✅ Drag-and-drop image upload
-- ✅ Real-time progress tracking
-- ✅ ZIP file extraction and viewing
-- ✅ JSON data visualization
-- ✅ Object detection overlay on images
-- ✅ Download and save results
+### Visualization Mode
+![Visualization](app/assets/2.png)
+*Interactive floorplan visualization with detected elements*
 
-### Visualization
+---
 
-- Bounding boxes for detected objects
-- Color-coded class labels
-- Detection statistics
-- Adjustable overlay opacity
-- Save visualization as image
+## ✨ Features
+
+### 🎨 Beautiful User Interface
+- **Light Olive Theme** - Professional and easy on the eyes
+- **Animated GIF Placeholders** - Engaging loading states while processing
+- **Responsive Design** - Works seamlessly on different screen sizes
+- **Three-Panel Layout** - Upload, Data Contents, and Data Check sections
+
+### 📤 Image Mode (Active)
+- **Drag & Drop Upload** - Easy floorplan image upload
+- **Real-time Progress** - Visual progress bar during upload
+- **Smart ZIP Extraction** - Automatic extraction and file listing
+- **Interactive Data Viewer** - Browse JSON files, images, and text files
+- **Advanced Visualization** - Annotated overlay with detected objects
+- **Vectorization View** - CAD-style vector representation
+- **Zoom & Pan** - Full control over visualization canvas
+- **Class Filtering** - Toggle visibility of different object types
+
+### 🎬 Loading Animations
+- **Man & Robot GIF** - Shows while processing ZIP contents
+- **Live Chatbot GIF** - Displays during data analysis
+- **Loader Cat GIF** - Appears while preparing visualization
+
+### 📊 Visualization Tools
+- Bounding boxes with color-coded classes
+- Key points and polygon overlays
+- Dimension area detection
+- OCR text display (dimensions, symbols, spaces)
+- Annotation text toggle
+- Export capabilities
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Modern web browser (Chrome, Firefox, Edge, Safari)
+- Python 3.7+ (for backend server, if needed)
+- FastAPI server running (for processing)
+
+### Installation
+
+1. **Clone or download this repository**
+   ```bash
+   git clone <repository-url>
+   cd web_gui
+   ```
+
+2. **No build required!** - This is a static web application
+
+3. **Open in browser**
+   ```bash
+   # Simply open index.html in your browser
+   # Or use a local server:
+   python -m http.server 8000
+   ```
+
+4. **Configure Server Settings**
+   - Click the "Settings" button in the menu bar
+   - Enter your FastAPI server IP and port
+   - Default: `127.0.0.1:5000`
+
+---
+
+## 📖 How to Use
+
+### Step 1: Upload Your Floorplan
+1. Open `index.html` in your browser
+2. Fill in project details:
+   - User ID (e.g., `sd_test`)
+   - Project Number (e.g., `PRJ-1`)
+   - Floor Number (e.g., `floor_1`)
+3. Select your floorplan image
+4. Click "🚀 Send to Server"
+
+### Step 2: Watch the Magic Happen
+- **GIF animations** will show while processing
+- Progress bar tracks upload status
+- ZIP file downloads automatically
+
+### Step 3: Explore Your Results
+- **ZIP Contents Panel** - Lists all extracted files
+- **Data Check Panel** - View JSON data and images
+- **Visualization Panel** - Interactive annotated view
+
+### Step 4: Interact with Visualization
+- **Scroll** to zoom in/out
+- **Drag** to pan around
+- **Toggle classes** to show/hide object types
+- **Switch views** between Visualization and Vectorization modes
+- **Toggle text** and key points on/off
+
+---
+
+## 🗂️ Project Structure
+
+```
+web_gui/
+├── index.html                      # Main application (Image Mode)
+├── dwg_mode.html                   # DWG Mode (Coming Soon)
+├── twarch_mode.html                # TwArch Mode (Coming Soon)
+├── README.md                       # This file
+│
+├── app/
+│   ├── assets/                     # GIF animations
+│   │   ├── man and robot working.gif
+│   │   ├── Live chatbot.gif
+│   │   └── Loader cat.gif
+│   │
+│   ├── img/                        # Images and icons
+│   │
+│   ├── src/
+│   │   ├── image_mode/            # Image Mode scripts
+│   │   │   ├── gif_animation/     # GIF loading controller
+│   │   │   ├── vectorize/         # Vectorization features
+│   │   │   ├── menu.js            # Settings modal
+│   │   │   ├── upload.js          # File upload handler
+│   │   │   ├── zip.js             # ZIP extraction
+│   │   │   ├── json_file_viewer.js # Data viewer
+│   │   │   ├── viz_render.js      # Visualization renderer
+│   │   │   └── viewer_ui.js       # UI interactions
+│   │   │
+│   │   ├── dwg_mode/              # DWG Mode scripts
+│   │   └── twarch_mode/           # TwArch Mode scripts
+│   │
+│   └── style/
+│       ├── common.css             # Shared styles
+│       ├── vector.css             # Vectorization styles
+│       └── gif.css                # GIF placeholder styles
+```
+
+---
+
+## 🎯 Modes
+
+### ✅ Image Mode (Active)
+Upload floorplan images and visualize AI-detected architectural elements including:
+- Walls, doors, windows
+- Rooms and spaces
+- Dimensions and annotations
+- Symbols and fixtures
+
+### 🚧 DWG Mode (Coming Soon)
+Direct processing of AutoCAD DWG files with:
+- CAD layer analysis
+- Native vector data extraction
+- Enhanced precision visualization
+
+### 🚧 TwArch Mode (Coming Soon)
+Advanced architectural reasoning with:
+- 3D CAD relations
+- Structural analysis
+- Multi-floor coordination
+
+---
+
+## ⚙️ Configuration
+
+### Server Settings
+Access via the "Settings" button in the menu bar:
+- **Mode Selection** - Switch between Image/DWG/TwArch modes
+- **Server IP** - Your FastAPI backend IP address
+- **Port** - Backend server port (default: 5000)
+
+Settings are saved in browser localStorage and persist across sessions.
+
+---
+
+## 🎨 Customization
+
+### Styling
+All styles are in `app/style/`:
+- `common.css` - Main theme colors and layout
+- `gif.css` - Loading animation styles
+- `vector.css` - Vectorization view styles
+
+### GIF Placeholders
+Replace GIFs in `app/assets/` to customize loading animations:
+- Data Content: `man and robot working.gif`
+- Data Check: `Live chatbot.gif`
+- Visualization: `Loader cat.gif`
+
+---
 
 ## 🔧 Troubleshooting
 
-### CORS Error in Browser
+### GIFs Not Showing
+- Check file paths match exactly (case-sensitive)
+- Ensure GIF files are in `app/assets/` folder
+- Verify file names don't have special characters
 
-**Problem:** Browser blocks cross-origin requests
+### Upload Fails
+- Verify server IP and port in Settings
+- Check if FastAPI server is running
+- Ensure server endpoint is `/receive_data`
 
-**Solution 1 - Use Proxy Server:**
+### Visualization Not Appearing
+- Wait for ZIP extraction to complete
+- Click on a JSON file in ZIP Contents
+- Check browser console for errors
 
-```bash
-python proxy_server.py
-# Then open http://localhost:5000
-```
-
-**Solution 2 - Use Python Client:**
-
-```bash
-python test_client_image_mode.py
-```
-
-### Dependencies Not Found
-
-```bash
-pip install flask flask-cors requests
-```
-
-## 📦 How It Works
-
-1. **Upload** - Select floorplan image and fill in project details
-2. **Send** - Data is sent to remote AI server (via proxy to bypass CORS)
-3. **Receive** - Server processes image and returns ZIP with results
-4. **Extract** - View all files in the ZIP (JSON, images, etc.)
-5. **Visualize** - Overlay detection results on original image
-
-## 🌐 Server Configuration
-
-Remote server: `http://61.97.0.0:0000/receive_data`
-
-To change server URL, edit:
-
-- `proxy_server.py`: Line 19 (REMOTE_SERVER_URL)
-- `test_client_image_mode.py`: Line 7 (REMOTE_SERVER_URL)
-
-## 💡 Tips
-
-- Use **proxy server** for web interface (best experience)
-- Use **Python client** for automation and batch processing
-- **Load local ZIP** if you already have results downloaded
-- **Adjust opacity** slider for better visualization
-
-## 🐛 Known Issues
-
-- Direct browser connection blocked by CORS (use proxy)
-- Large images may take time to process (up to 2 minutes)
+### CORS Errors
+- Ensure FastAPI server has CORS middleware enabled
+- Use same protocol (http/https) for both frontend and backend
 
 ---
 
-Made with ❤️ for AI-CE Floorplan Analysis
+## 🚀 Future Work
+
+- [ ] **DWG Mode** - Native AutoCAD file support
+- [ ] **TwArch Mode** - Advanced architectural analysis
+- [ ] **Multi-file Upload** - Batch processing
+- [ ] **Export Options** - PDF, PNG, SVG export
+- [ ] **Annotation Editing** - Manual corrections
+- [ ] **Comparison Mode** - Side-by-side view
+- [ ] **Cloud Storage** - Save projects online
+- [ ] **Collaboration** - Share visualizations
+
+---
+
+## 📄 License
+
+Personal Project
+
+---
+
+## 📧 Contact
+
+**For Development Inquiries:**  
+📩 personal@INc.
+
+---
+
+**Made with ❤️ for Floorplan Analysis**

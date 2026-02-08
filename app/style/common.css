@@ -1,70 +1,15 @@
-﻿<!-- index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>AI-CE Floorplan Visualizer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>
-/* ------------------------------------------------------------------
-   Enhance drag + arrow movement without altering existing behavior.
-   Keeps image panning smooth even when mouse leaves viewer bounds.
--------------------------------------------------------------------*/
-(function () {
-  const viewer = document.getElementById("viewer");
-  if (!viewer) return;
-
-  let isDragging = false;
-  let startX = 0, startY = 0;
-  let scrollLeft = 0, scrollTop = 0;
-
-  // start drag
-  viewer.addEventListener("mousedown", (e) => {
-    if (e.button !== 0) return;      // left click only
-    e.preventDefault();
-    isDragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-    scrollLeft = viewer.scrollLeft;
-    scrollTop = viewer.scrollTop;
-    viewer.style.cursor = "grabbing";
-    viewer.style.userSelect = "none";
-  });
-
-  // drag move (global)
-  document.addEventListener("mousemove", (e) => {
-    if (!isDragging) return;
-    viewer.scrollLeft = scrollLeft - (e.clientX - startX);
-    viewer.scrollTop  = scrollTop  - (e.clientY - startY);
-  });
-
-  // end drag (global)
-  document.addEventListener("mouseup", () => {
-    isDragging = false;
-    viewer.style.cursor = "grab";
-    viewer.style.removeProperty("user-select");
-  });
-
-  // keyboard panning for fine control
-  document.addEventListener("keydown", (e) => {
-    const step = 50;
-    switch (e.key) {
-      case "ArrowLeft":  viewer.scrollLeft -= step; break;
-      case "ArrowRight": viewer.scrollLeft += step; break;
-      case "ArrowUp":    viewer.scrollTop  -= step; break;
-      case "ArrowDown":  viewer.scrollTop  += step; break;
-    }
-  });
-})();
-</script>
-
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
   
   body { 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     background: #f5f5f5;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .container {
+    flex: 1;
   }
   
   .menu-bar {
@@ -95,6 +40,40 @@
   .menu-btn:hover {
     background: #8BA572;
     }
+  
+  .footer-bar {
+    background: #6B7A5A;
+    color: white;
+    padding: 20px 24px;
+    margin-top: 40px;
+    box-shadow: 0 -2px 8px rgba(139,165,114,0.12);
+  }
+  
+  .footer-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .footer-text {
+    margin: 6px 0;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+  }
+  
+  .footer-link {
+    color: #A1C084;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  
+  .footer-link:hover {
+    color: #ffffff;
+    text-decoration: underline;
+  }
+  
   .modal {
     position: fixed;
     z-index: 999;
@@ -137,7 +116,7 @@
 
 
   .header-section {
-    background: linear-gradient(rgba(139, 165, 114, 0.85), rgba(107, 122, 90, 0.85)), url('app/img/1.png');
+    background: linear-gradient(rgba(139, 165, 114, 0.85), rgba(107, 122, 90, 0.85)), url('../img/1.png');
     background-size: cover;
     background-position: center;
     color: white;
@@ -328,7 +307,7 @@
     position: relative;
     background: #f8f9fa;
     border-radius: 8px;
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to allow viewer scrollbars */
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
   
@@ -354,6 +333,15 @@
   .main-viz {
     grid-column: 1 / -1;
     margin-bottom: 15px;
+    overflow: visible; /* Allow viewer to show scrollbars */
+  }
+  
+  /* Main visualization container - wrapper for viewer */
+  #mainVizContainer {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
   
   .progress-bar {
@@ -410,10 +398,82 @@
     border: 1px solid #ddd;
   }
   
+  /* ============================================================================
+   * SCROLLBAR & ZOOM FIX - CSS
+   * ============================================================================
+   * Ensure scrollbars are always visible and drag works properly in zoom mode
+   * ============================================================================ */
+  
+  /* CRITICAL: Viewer container MUST have fixed dimensions */
   #viewer {
+    width: 1000px; /* Fixed width - 1k size */
+    height: 800px; /* Fixed height - 1k format */
+    max-width: 100%; /* Don't exceed container */
+    overflow: scroll !important; /* Force scrollbars to always show */
+    overflow-x: scroll !important;
+    overflow-y: scroll !important;
+    position: relative;
     cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    background: #f5f5f5;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    margin: 0 auto; /* Center the viewer */
+    
+    /* Make scrollbars always visible (not just on hover) */
+    scrollbar-color: #888 #f1f1f1; /* Firefox: thumb track */
+    scrollbar-width: auto; /* Firefox */
   }
   
+  /* Webkit browsers (Chrome, Safari, Edge) - Custom scrollbar styling */
+  #viewer::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  
+  #viewer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  
+  #viewer::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+  }
+  
+  #viewer::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+  
+  /* Zoom container - holds the scaled image */
+  #zoomContainer {
+    position: relative !important;
+    display: inline-block;
+    transform-origin: top left;
+    transform: none; /* Don't use CSS transform for scaling */
+  }
+  
+  /* Main image */
+  #mainImage {
+    display: block;
+    position: relative;
+    /* Size is set dynamically via JS */
+  }
+  
+  /* Canvas overlay for annotations */
+  #mainCanvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none; /* Allow mouse events to pass through */
+  }
+  
+  /* Dragging cursor */
+  #viewer.dragging {
+    cursor: grabbing !important;
+  }
 
   @media (max-width: 1024px) {
     .three-columns {
@@ -434,138 +494,3 @@
       grid-template-columns: repeat(2, 1fr);
     }
   }
-</style>
-</head>
-<body>
-
-<div class="menu-bar">
-  <span class="menu-title">My Project</span>
-  <button id="settingsBtn" class="menu-btn">Settings</button>
-</div>
-
-<div id="settingsModal" class="modal" style="display:none;">
-  <div class="modal-content">
-    <span class="close" id="closeSettings">&times;</span>
-    <h2>Server Settings</h2>
-    <label for="serverIp">Server IP:</label>
-    <input type="text" id="serverIp" value="127.0.0.1">
-    <label for="serverPort">Port:</label>
-    <input type="text" id="serverPort" value="5000">
-    <button id="saveSettings" class="btn">Save</button>
-  </div>
-</div> 
-
-<div class="header-section">
-  <h1>Floorplan Reconstruction</h1>
-</div>
-
-<div class="container">
-  
-  <div class="three-columns">
-    
-    <div class="column">
-      <h3>📤 Upload Floorplan</h3>
-      <form id="uploadForm">
-        <div class="form-group">
-          <label>User ID:</label>
-          <input type="text" id="user_id" required placeholder="e.g., sd_test">
-        </div>
-        
-        <div class="form-group">
-          <label>Project Number:</label>
-          <input type="text" id="project_number" required placeholder="e.g., PRJ-1">
-        </div>
-        
-        <div class="form-group">
-          <label>Floor Number:</label>
-          <input type="text" id="floor_number" required placeholder="e.g., floor_1">
-        </div>
-        
-        <div class="form-group">
-          <label>Select Image:</label>
-          <input type="file" id="image" accept="image/*" required>
-          <div id="imagePreview" class="image-preview"></div>
-        </div>
-        
-        <button type="submit" class="btn" id="submitBtn">
-          <span id="submitText">🚀 Send to Server</span>
-        </button>
-        <div class="progress-bar" id="progressBar" style="display:none;">
-          <div class="progress-fill" id="progressFill"></div>
-        </div>
-      </form>
-      
-      <div id="uploadStatus"></div>
-    </div>
-    
-    <div class="column">
-      <h3>📦 ZIP Contents</h3>
-      <div id="zipInfo" class="info" style="display:none;"></div>
-      <button id="extractBtn" class="btn" style="display:none;">📂 Extract ZIP</button>
-      <div id="scaleInfo" class="scale-info" style="display:none;"></div>
-      <div id="fileList" class="file-list" style="margin-top: 15px;"></div>
-    </div>
-    
-    <div class="column">
-      <h3>🔍 Data Check</h3>
-      <div id="dataCheckContent">
-        <div class="data-placeholder">
-          📄 Click on a file to view its contents
-        </div>
-      </div>
-    </div>
-    
-  </div>
-  
-  <div class="visualization-section" id="visualizationSection" style="display:none;">
-  <h3>👁️ Visualization Check</h3>
-  <div id="annotationControls"></div>
-  <button id="toggleTextBtn" class="btn" style="margin-bottom:10px;">Hide Annotation</button>
-  <button id="toggleKeyPointsBtn" class="btn" style="margin-bottom:10px;">Hide Key Points</button>  
-  <div class="viz-grid">
-      <div class="viz-item main-viz" id="mainVizContainer">
-        <div id="viewer" style="position:relative; overflow:hidden; width:100%; height:600px;">
-          <div id="zoomContainer" style="position:absolute; top:0; left:0;">
-            <img id="mainImage" style="display:block;">
-            <canvas id="mainCanvas" style="position:absolute; left:0; top:0; pointer-events:none;"></canvas>
-          </div>
-        </div>
-        <!-- <div class="viz-label">Main Visualization with Detections</div> -->
-      </div>
-      
-      <div class="viz-item" id="viz1" style="display:none;">
-        <img id="vizImg1">
-        <div class="viz-label" id="vizLabel1">Content 1</div>
-      </div>
-      
-      <div class="viz-item" id="viz2" style="display:none;">
-        <img id="vizImg2">
-        <div class="viz-label" id="vizLabel2">Content 2</div>
-      </div>
-      
-      <div class="viz-item" id="viz3" style="display:none;">
-        <img id="vizImg3">
-        <div class="viz-label" id="vizLabel3">Content 3</div>
-      </div>
-      
-      <div class="viz-item" id="viz4" style="display:none;">
-        <img id="vizImg4">
-        <div class="viz-label" id="vizLabel4">Content 4</div>
-      </div>
-      
-      <div class="viz-item" id="viz5" style="display:none;">
-        <img id="vizImg5">
-        <div class="viz-label" id="vizLabel5">Content 5</div>
-      </div>
-    </div>
-  </div>
-  
-</div>
-
-<script src="./app/src/menu.js"></script>
-<script src="./app/src/upload.js"></script>
-<script src="./app/src/zip.js"></script>
-<script src="./app/src/data.js"></script>
-<script src="./app/src/viz.js"></script>
-</body>
-</html>

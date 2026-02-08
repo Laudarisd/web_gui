@@ -5,39 +5,34 @@
 // ============================================================================
 
 // ---------------------------------------------------------------------------
-// 🔧 Utility: Update global URL and persist it in localStorage
+// 🔧 Utility: Update global URL (session only - not persisted)
 // ---------------------------------------------------------------------------
-// Why: Persisting allows the web app to remember the last used backend even
-//      after reloads or when hosted statically (e.g., on GitHub Pages).
+// Why: For security, server settings are not saved across page reloads.
+// Users must re-enter server details each session when using custom endpoints.
 function setServerURL(ip, port) {
   window.SERVER_URL = `http://${ip}:${port}/receive_data`;
-  localStorage.setItem("SERVER_URL", window.SERVER_URL);
   alert(`✅ Server URL set to: ${window.SERVER_URL}`);
 }
 
 // ---------------------------------------------------------------------------
-// 🧭 Restore previously saved server settings on page load
+// Security: Always reset to default on page load
 // ---------------------------------------------------------------------------
-// Why: Avoids retyping server IP every time. Works across sessions in same browser.
+// Why: Prevents exposure of sensitive server IPs when hosted publicly.
+// Users must manually enter server details each session for security.
 window.addEventListener("DOMContentLoaded", () => {
-  const savedUrl = localStorage.getItem("SERVER_URL");
-  if (savedUrl) {
-    window.SERVER_URL = savedUrl;
-    // Extract IP and port for display
-    try {
-      const url = new URL(savedUrl);
-      const hostParts = url.host.split(":");
-      document.getElementById("serverIp").value = hostParts[0] || "";
-      document.getElementById("serverPort").value = hostParts[1] || "";
-    } catch (e) {
-      console.warn("⚠️ Invalid saved SERVER_URL, resetting...");
-      localStorage.removeItem("SERVER_URL");
-    }
-  }
+  // Always clear any saved server URL for security
+  localStorage.removeItem("SERVER_URL");
+  
+  // Reset to default values
+  document.getElementById("serverIp").value = "127.0.0.1";
+  document.getElementById("serverPort").value = "5000";
+  
+  // Set default SERVER_URL
+  window.SERVER_URL = "http://127.0.0.1:5000/receive_data";
 });
 
 // ---------------------------------------------------------------------------
-// ⚙️ "Settings" button → open modal
+// "Settings" button → open modal
 // ---------------------------------------------------------------------------
 // Why: Allows users to change backend address dynamically without reloading.
 document.getElementById("settingsBtn").onclick = function() {
@@ -45,7 +40,7 @@ document.getElementById("settingsBtn").onclick = function() {
 };
 
 // ---------------------------------------------------------------------------
-// ❌ "X" button → close modal (no save)
+//  "X" button → close modal (no save)
 // ---------------------------------------------------------------------------
 // Why: User might want to cancel or inspect current settings without applying.
 document.getElementById("closeSettings").onclick = function() {
@@ -53,7 +48,7 @@ document.getElementById("closeSettings").onclick = function() {
 };
 
 // ---------------------------------------------------------------------------
-// 💾 "Save" button → build and save FastAPI endpoint
+// "Save" button → build and save FastAPI endpoint
 // ---------------------------------------------------------------------------
 // Why: Sets a global variable accessible by upload.js and other modules.
 // Note: Includes minimal validation to prevent empty fields.
@@ -76,7 +71,7 @@ document.getElementById("saveSettings").onclick = function() {
 };
 
 // ---------------------------------------------------------------------------
-// 🔍 Quick connectivity check to FastAPI backend
+//  Quick connectivity check to FastAPI backend
 // ---------------------------------------------------------------------------
 // Why: Helps user confirm whether the backend is reachable (e.g., on remote IP).
 // Works by pinging `/health` endpoint; ignores CORS errors gracefully.
@@ -103,3 +98,36 @@ async function testServerConnection() {
     console.error("❌ Connection test failed:", err);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Handle Mode Switching (Image / DWG / TwARCH)
+// ---------------------------------------------------------------------------
+// Runs whenever user changes the "Choose Mode" dropdown in settings modal.
+const modeDropdown = document.getElementById("appMode");
+
+// Restore previously selected mode on page load
+window.addEventListener("DOMContentLoaded", () => {
+  const savedMode = localStorage.getItem("APP_MODE") || "image";
+  modeDropdown.value = savedMode;
+});
+
+if (modeDropdown) {
+  modeDropdown.addEventListener("change", (e) => {
+    const selectedMode = e.target.value;
+    localStorage.setItem("APP_MODE", selectedMode);
+
+    if (selectedMode === "image") {
+      alert("You are now in Image Mode.");
+      // stay on same page
+    } 
+    else if (selectedMode === "dwg") {
+      alert("Switching to DWG Mode...");
+      window.location.href = "dwg_mode.html"; // future DWG GUI
+    } 
+    else if (selectedMode === "twarch") {
+      alert("Switching to TwARCH Mode...");
+      window.location.href = "twarch_mode.html"; // future TwARCH GUI
+    }
+  });
+}
+

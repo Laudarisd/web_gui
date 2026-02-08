@@ -78,6 +78,21 @@ function updateProgress(percent) {
 document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   e.preventDefault(); // stop default form reload
 
+  if (typeof window.setGifSectionReady === "function") {
+    window.setGifSectionReady("dataContent", false);
+    window.setGifSectionReady("dataCheck", false);
+    window.setGifSectionReady("visualization", false);
+  }
+
+  const dataCheck = document.getElementById("dataCheckContent");
+  if (dataCheck) {
+    dataCheck.innerHTML = "";
+    dataCheck.style.display = "none";
+  }
+
+  const fileList = document.getElementById("fileList");
+  if (fileList) fileList.innerHTML = "";
+
   const fileInput = document.getElementById("image");
   const file = fileInput.files[0];
   if (!file) {
@@ -178,6 +193,11 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     // Catch all network or server errors
     showStatus(`❌ Error: ${err.message}`, "error");
     updateProgress(0);
+    
+    // Hide running puppy on error
+    if (typeof window.hideRunningPuppy === "function") {
+      window.hideRunningPuppy();
+    }
   }
 });
 

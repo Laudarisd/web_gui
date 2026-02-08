@@ -1,3 +1,8 @@
-flask
-flask_cors
-requests
+# Minimal dependencies for Floorplan Visualizer
+# Only needed if running a local proxy server or backend
+
+# CORS handling (optional - for local server)
+FastAPI-cors>=4.0.0
+
+# HTTP requests (optional - for testing)
+requests>=2.31.0

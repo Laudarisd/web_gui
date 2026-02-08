@@ -15,6 +15,10 @@ async function showFileContent(fileName) {
   const dataCheck = document.getElementById("dataCheckContent");
   currentFileName = fileName;
 
+  if (dataCheck) {
+    dataCheck.style.display = "block";
+  }
+
   try {
     // ------------------------------------------------------------
     // Case 1: JSON file (usually annotations, segmentation, or crop info)
@@ -71,6 +75,10 @@ async function showFileContent(fileName) {
       `;
     }
 
+    if (typeof window.setGifSectionReady === "function") {
+      window.setGifSectionReady("dataCheck", true);
+    }
+
   } catch (error) {
     // ------------------------------------------------------------
     // Handle any read/parse/display errors gracefully
@@ -79,5 +87,9 @@ async function showFileContent(fileName) {
     dataCheck.innerHTML = `
       <p class="status-message error">Error: ${error.message}</p>
     `;
+
+    if (typeof window.setGifSectionReady === "function") {
+      window.setGifSectionReady("dataCheck", true);
+    }
   }
 }

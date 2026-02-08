@@ -105,7 +105,9 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   const projectNumber = document.getElementById("project_number").value || "PRJ-1";
   const floorNumber = document.getElementById("floor_number").value || "floor_1";
   const serverIp = document.getElementById("serverIp").value.trim();
-  const serverPort = document.getElementById("serverPort").value.trim();
+  // const serverPort = document.getElementById("serverPort").value.trim();
+  let serverPort = document.getElementById("serverPort").value.trim();
+
 
   // Validate IP/port presence
   if (!serverIp || !serverPort) {
@@ -114,7 +116,19 @@ document.getElementById("uploadForm").addEventListener("submit", async (e) => {
   }
 
   // Construct full FastAPI endpoint URL
-  const serverUrl = `http://${serverIp}:${serverPort}/receive_data`;
+  // const serverUrl = `http://${serverIp}:${serverPort}/receive_data`;
+  // Construct full FastAPI endpoint URL (works for local + GitHub Pages)
+  const scheme = (window.location.protocol === "https:") ? "https" : "http";
+
+  // If user typed the tunnel host but left port as 8000, auto-fix to 443 on HTTPS pages
+  if (scheme === "https" && serverPort === "8000") {
+    serverPort = "443";
+  }
+
+  const serverUrl = `${scheme}://${serverIp}:${serverPort}/receive_data`;
+  console.log(`📡 Sending to ${serverUrl}`);
+
+  
   console.log(`📡 Sending to ${serverUrl}`);
 
   // Prepare form data exactly as FastAPI expects
